@@ -22,5 +22,5 @@ val authModule = module {
     factory { ForgotPasswordUseCase(get(), get(), get()) }
     factory { ResetPasswordUseCase(get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get()) }
-    factory { com.mathstack.auth.application.LoginWithGoogleUseCase(get(), get()) }
+    factory { com.mathstack.auth.application.LoginWithGoogleAndOtpUseCase(get(), get(), get(), get()) }
 }

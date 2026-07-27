@@ -52,9 +52,17 @@ fun Route.authRouting() {
             call.respond(HttpStatusCode.OK, mapOf("message" to "Password reset successfully"))
         }
 
-        post("/google") {
-            val session = loginWithGoogleUseCase(call.receive<com.mathstack.auth.infrastructure.rest.dto.LoginWithGoogleRequest>().toCommand())
-            call.respond(HttpStatusCode.OK, session.toResponse())
+        post("/login-with-google-otp") {
+            val request = call.receive<LoginWithGoogleRequest>()
+            val loginWithGoogleAndOtpUseCase by inject<com.mathstack.auth.application.LoginWithGoogleAndOtpUseCase>()
+            loginWithGoogleAndOtpUseCase(
+                com.mathstack.auth.application.LoginWithGoogleCommand(
+                    request.email,
+                    request.username,
+                    request.firebaseUid
+                )
+            )
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Verification code sent to email"))
         }
 
         post("/register") {
