@@ -30,4 +30,18 @@ class JwtTokenService(
             .withExpiresAt(Date.from(expiresAt))
             .sign(Algorithm.HMAC256(secret))
     }
+
+    override fun generateTempToken(userId: UUID, email: String): String {
+        val expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES)
+
+        return JWT.create()
+            .withIssuer(issuer)
+            .withAudience(audience)
+            .withSubject(userId.toString())
+            .withClaim("user_id", userId.toString())
+            .withClaim("email", email)
+            .withClaim("temp_otp", true)
+            .withExpiresAt(Date.from(expiresAt))
+            .sign(Algorithm.HMAC256(secret))
+    }
 }

@@ -15,15 +15,41 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
+import com.mathstack.auth.application.VerifyOtpUseCase
+import com.mathstack.auth.application.VerifyOtpCommand
+import com.mathstack.auth.infrastructure.rest.dto.VerifyOtpRequest
+
 fun Route.authRouting() {
     val loginUseCase by inject<LoginUseCase>()
     val registerUseCase by inject<RegisterUseCase>()
     val loginWithGoogleUseCase by inject<com.mathstack.auth.application.LoginWithGoogleUseCase>()
+    val verifyOtpUseCase by inject<VerifyOtpUseCase>()
+
+    val forgotPasswordUseCase by inject<com.mathstack.auth.application.ForgotPasswordUseCase>()
+    val resetPasswordUseCase by inject<com.mathstack.auth.application.ResetPasswordUseCase>()
 
     route("/api/v1/auth") {
         post("/login") {
             val session = loginUseCase(call.receive<LoginRequest>().toCommand())
             call.respond(HttpStatusCode.OK, session.toResponse())
+        }
+
+        post("/verify-otp") {
+            val request = call.receive<VerifyOtpRequest>()
+            val session = verifyOtpUseCase(VerifyOtpCommand(request.email, request.code))
+            call.respond(HttpStatusCode.OK, session.toResponse())
+        }
+
+        post("/forgot-password") {
+            val request = call.receive<com.mathstack.auth.infrastructure.rest.dto.ForgotPasswordRequest>()
+            forgotPasswordUseCase(com.mathstack.auth.application.ForgotPasswordCommand(request.email))
+            call.respond(HttpStatusCode.OK, mapOf("message" to "If the email exists, a code was sent"))
+        }
+
+        post("/reset-password") {
+            val request = call.receive<com.mathstack.auth.infrastructure.rest.dto.ResetPasswordRequest>()
+            resetPasswordUseCase(com.mathstack.auth.application.ResetPasswordCommand(request.email, request.code))
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Password reset successfully"))
         }
 
         post("/google") {

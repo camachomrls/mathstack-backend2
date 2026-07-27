@@ -24,4 +24,5 @@ interface UserRepository {
 
     fun findProfileByUserId(userId: UUID): UserProfile?
     fun getLeaderboard(limit: Int): List<UserProfile>
+    fun updatePassword(userId: UUID, passwordHash: String): Boolean
 }

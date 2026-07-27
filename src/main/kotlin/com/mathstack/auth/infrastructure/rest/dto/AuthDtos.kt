@@ -37,9 +37,29 @@ fun LoginWithGoogleRequest.toCommand() = com.mathstack.auth.application.LoginWit
 )
 
 @Serializable
+data class VerifyOtpRequest(
+    val email: String,
+    val code: String,
+)
+
+@Serializable
+data class ForgotPasswordRequest(
+    val email: String,
+)
+
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+)
+
+@Serializable
 data class AuthResponse(
-    val token: String,
-    val user: UserResponse,
+    val token: String? = null,
+    val user: UserResponse? = null,
+    val requiresOtp: Boolean = false,
+    val tempToken: String? = null,
+    val email: String? = null,
 )
 
 fun LoginRequest.toCommand(): LoginCommand {
@@ -72,7 +92,13 @@ fun RegisterRequest.toCommand(): RegisterCommand {
 }
 
 fun AuthSession.toResponse(): AuthResponse =
-    AuthResponse(token = token, user = user.toResponse())
+    AuthResponse(
+        token = token,
+        user = user?.toResponse(),
+        requiresOtp = requiresOtp,
+        tempToken = tempToken,
+        email = user?.email
+    )
 
 private fun validateEmail(value: String) {
     if (!EmailRegex.matches(value.normalizedEmail())) {

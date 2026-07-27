@@ -112,6 +112,13 @@ class PostgresUserRepository : UserRepository {
             UserTable.deleteWhere { UserTable.id eq id } > 0
         }
 
+    override fun updatePassword(userId: UUID, passwordHash: String): Boolean =
+        transaction {
+            UserTable.update({ UserTable.id eq userId }) {
+                it[this.passwordHash] = passwordHash
+            } > 0
+        }
+
     override fun createStats(stats: UserGamificationStats): UserGamificationStats =
         transaction {
             insertStatsInTransaction(stats)

@@ -30,6 +30,8 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
+import com.mathstack.auth.infrastructure.persistence.OtpCodeTable
+
 object DatabaseFactory {
     fun init(config: ApplicationConfig) {
         Database.connect(hikari(config))
@@ -56,7 +58,8 @@ object DatabaseFactory {
                 AdminSettingsTable,
                 GroupsTable,
                 GroupMembersTable,
-                UserProficiencyTable
+                UserProficiencyTable,
+                OtpCodeTable
             )
 
             val defaultSubjects = listOf(
