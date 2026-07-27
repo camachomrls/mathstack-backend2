@@ -3,6 +3,7 @@ package com.mathstack.auth.infrastructure.rest
 import com.mathstack.auth.application.LoginUseCase
 import com.mathstack.auth.application.RegisterUseCase
 import com.mathstack.auth.infrastructure.rest.dto.LoginRequest
+import com.mathstack.auth.infrastructure.rest.dto.LoginWithGoogleRequest
 import com.mathstack.auth.infrastructure.rest.dto.RegisterRequest
 import com.mathstack.auth.infrastructure.rest.dto.toCommand
 import com.mathstack.auth.infrastructure.rest.dto.toResponse
@@ -23,6 +24,7 @@ fun Route.authRouting() {
     val loginUseCase by inject<LoginUseCase>()
     val registerUseCase by inject<RegisterUseCase>()
     val loginWithGoogleUseCase by inject<com.mathstack.auth.application.LoginWithGoogleUseCase>()
+    val loginWithGoogleAndOtpUseCase by inject<com.mathstack.auth.application.LoginWithGoogleAndOtpUseCase>()
     val verifyOtpUseCase by inject<VerifyOtpUseCase>()
 
     val forgotPasswordUseCase by inject<com.mathstack.auth.application.ForgotPasswordUseCase>()
@@ -54,7 +56,7 @@ fun Route.authRouting() {
 
         post("/login-with-google-otp") {
             val request = call.receive<LoginWithGoogleRequest>()
-            val loginWithGoogleAndOtpUseCase by inject<com.mathstack.auth.application.LoginWithGoogleAndOtpUseCase>()
+            // use injected use case defined above
             loginWithGoogleAndOtpUseCase(
                 com.mathstack.auth.application.LoginWithGoogleCommand(
                     request.email,

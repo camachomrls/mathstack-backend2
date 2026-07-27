@@ -43,8 +43,4 @@ class LoginWithGoogleAndOtpUseCase(
     }
 }
 
-data class LoginWithGoogleCommand(
-    val email: String,
-    val username: String,
-    val firebaseUid: String?
-)
+
