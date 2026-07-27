@@ -25,6 +25,7 @@ val socialModule = module {
     single { ListFriendsUseCase(get()) }
     single { CreateChallengeUseCase(get()) }
     single { SubmitChallengeResultUseCase(get()) }
+    single { com.mathstack.social.application.GetChallengeExercisesUseCase(get(), get()) }
     
     single { CreateGroupUseCase(get()) }
     single { AddGroupMemberUseCase(get(), get()) }

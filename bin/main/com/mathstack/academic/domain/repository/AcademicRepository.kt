@@ -28,6 +28,7 @@ interface AcademicRepository {
     fun findExerciseById(id: UUID): Exercise?
     fun listAllExercises(): List<Exercise>
     fun listExercisesByLesson(lessonId: UUID): List<Exercise>
+    fun listRandomExercisesBySubjectAndDifficulty(subjectId: Int, difficultyLevel: Int, limit: Int): List<Exercise>
     fun updateExercise(exercise: Exercise): Exercise?
     fun deleteExercise(id: UUID): Boolean
 }

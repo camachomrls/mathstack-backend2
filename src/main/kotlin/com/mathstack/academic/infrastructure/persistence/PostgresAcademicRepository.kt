@@ -12,6 +12,8 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.innerJoin
 
 class PostgresAcademicRepository : AcademicRepository {
     override fun createSubject(name: String): Subject = transaction {
@@ -90,6 +92,15 @@ class PostgresAcademicRepository : AcademicRepository {
 
     override fun listExercisesByLesson(lessonId: UUID): List<Exercise> = transaction {
         ExerciseTable.selectAll().where { ExerciseTable.lessonId eq lessonId }.map { it.toExercise() }
+    }
+
+    override fun listRandomExercisesBySubjectAndDifficulty(subjectId: Int, difficultyLevel: Int, limit: Int): List<Exercise> = transaction {
+        (ExerciseTable innerJoin LessonTable)
+            .selectAll()
+            .where { (LessonTable.subjectId eq subjectId) and (LessonTable.difficultyLevel eq difficultyLevel) }
+            .orderBy(org.jetbrains.exposed.sql.Random())
+            .limit(limit)
+            .map { it.toExercise() }
     }
 
     override fun updateExercise(exercise: Exercise): Exercise? = transaction {

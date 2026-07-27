@@ -29,6 +29,7 @@ fun Route.practiceRouting() {
     val submitDiagnostic by inject<com.mathstack.practice.application.SubmitDiagnosticAnswersUseCase>()
     val getLearningPath by inject<com.mathstack.practice.application.GetLearningPathUseCase>()
     val listSubjects by inject<com.mathstack.academic.application.ListSubjectsUseCase>()
+    val getSubjectProgress by inject<com.mathstack.practice.application.GetSubjectProgressUseCase>()
 
     authenticate("auth-jwt") {
         route("/api/v1/practice/users/{userId}") {
@@ -130,6 +131,13 @@ fun Route.practiceRouting() {
                 }
                 
                 call.respond(HttpStatusCode.OK, responseList)
+            }
+
+            get("/subjects-progress") {
+                val userIdStr = call.parameters["userId"] ?: throw IllegalArgumentException("userId is required")
+                val userId = UUID.fromString(userIdStr)
+                val progressList = getSubjectProgress(userId)
+                call.respond(HttpStatusCode.OK, progressList)
             }
         }
     }

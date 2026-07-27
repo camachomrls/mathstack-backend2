@@ -111,6 +111,24 @@ fun Route.socialRouting() {
                     val participant = submitChallengeResult(command)
                     call.respond(HttpStatusCode.OK, participant.toResponse())
                 }
+
+                get("/{challengeId}/exercises") {
+                    val challengeIdStr = call.parameters["challengeId"] ?: throw IllegalArgumentException("challengeId is required")
+                    val challengeId = UUID.fromString(challengeIdStr)
+                    
+                    val getChallengeExercisesUseCase by call.application.inject<com.mathstack.social.application.GetChallengeExercisesUseCase>()
+                    val exercises = getChallengeExercisesUseCase(challengeId, 10)
+                    
+                    val response = exercises.map { 
+                        com.mathstack.academic.infrastructure.rest.dto.ExerciseResponse(
+                            id = it.id.toString(),
+                            lessonId = it.lessonId.toString(),
+                            content = it.content,
+                            conceptTested = it.conceptTested
+                        ) 
+                    }
+                    call.respond(HttpStatusCode.OK, response)
+                }
             }
         }
     }

@@ -2,9 +2,11 @@ package com.mathstack.admin.application
 
 import com.mathstack.admin.domain.repository.AdminChallengeRepository
 import com.mathstack.admin.infrastructure.rest.dto.ChallengeResponse
+import com.mathstack.social.domain.repository.SocialRepository
 
 class ListAllChallengesUseCase(
-    private val adminChallengeRepository: AdminChallengeRepository
+    private val adminChallengeRepository: AdminChallengeRepository,
+    private val socialRepository: SocialRepository
 ) {
     operator fun invoke(): List<ChallengeResponse> {
         return adminChallengeRepository.listAll().map { challenge ->
@@ -22,7 +24,7 @@ class ListAllChallengesUseCase(
                 rewardCoins = challenge.rewardCoins,
                 rewardXP = challenge.rewardXp,
                 targetScore = challenge.targetScore,
-                participants = 0, // Placeholder
+                participants = socialRepository.getChallengeParticipants(challenge.id).size,
                 isActive = challenge.status == "ACTIVE"
             )
         }
