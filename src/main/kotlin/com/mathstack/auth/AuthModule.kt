@@ -12,17 +12,17 @@ import com.mathstack.auth.application.VerifyOtpUseCase
 import com.mathstack.auth.application.ForgotPasswordUseCase
 import com.mathstack.auth.application.ResetPasswordUseCase
 import org.koin.dsl.module
-import com.mathstack.shared.infrastructure.email.EmailService
+import com.mathstack.shared.domain.email.EmailSender
 import com.mathstack.shared.infrastructure.email.SmtpEmailService
 val authModule = module {
     single<PasswordHasher> { BCryptPasswordHasher() }
     single<TokenService> { JwtTokenService(get()) }
     single<OtpCodeRepository> { PostgresOtpCodeRepository() }
     single { LoginUseCase(get(), get(), get(), get(), get()) }
-    factory { VerifyOtpUseCase(get(), get(), get()) }
-    factory { ForgotPasswordUseCase(get(), get(), get()) }
+    factory { VerifyOtpUseCase(get(), get(), get(), get()) }
+    factory { ForgotPasswordUseCase(get(), get(), get(), get()) }
     factory { ResetPasswordUseCase(get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get()) }
-    single<EmailService> { SmtpEmailService() }
-    factory { com.mathstack.auth.application.LoginWithGoogleAndOtpUseCase(get(), get(), get(), get()) }
+    single<EmailSender> { SmtpEmailService() }
+    factory { com.mathstack.auth.application.LoginWithGoogleAndOtpUseCase(get(), get(), get(), get(), get()) }
 }

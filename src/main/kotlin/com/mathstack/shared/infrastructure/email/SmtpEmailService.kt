@@ -1,16 +1,17 @@
 package com.mathstack.shared.infrastructure.email
 
 import com.mathstack.shared.infrastructure.config.Env
-import org.apache.commons.mail.HtmlEmail
+import com.mathstack.shared.domain.email.EmailSender
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.apache.commons.mail.HtmlEmail
 import org.slf4j.LoggerFactory
 
-class SmtpEmailService : EmailService {
+class SmtpEmailService : EmailSender {
     private val logger = LoggerFactory.getLogger(SmtpEmailService::class.java)
 
-    override fun sendEmail(to: String, subject: String, htmlContent: String) {
+    override suspend fun sendEmail(to: String, subject: String, htmlContent: String) {
         val smtpUser = Env.get("SMTP_USER")
         val smtpPass = Env.get("SMTP_PASSWORD")
         
@@ -19,7 +20,7 @@ class SmtpEmailService : EmailService {
             return
         }
 
-        GlobalScope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             try {
                 val email = HtmlEmail()
                 email.hostName = "smtp.gmail.com"
@@ -32,9 +33,11 @@ class SmtpEmailService : EmailService {
                 email.addTo(to)
                 
                 email.send()
-                logger.info("Email sent successfully to \$to with subject '\$subject'")
+                logger.info("Email sent successfully to {} with subject '{}'", to, subject)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                logger.error("Failed to send email to \$to", e)
+                logger.error("Failed to send email to {}", to, e)
             }
         }
     }

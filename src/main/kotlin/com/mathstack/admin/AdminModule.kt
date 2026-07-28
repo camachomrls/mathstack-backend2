@@ -21,7 +21,6 @@ val adminModule = module {
     factory { com.mathstack.admin.application.UpdateAdminChallengeUseCase(get()) }
     factory { com.mathstack.admin.application.DeleteAdminChallengeUseCase(get()) }
     single<com.mathstack.admin.domain.repository.AdminSettingsRepository> { com.mathstack.admin.infrastructure.persistence.PostgresAdminSettingsRepository() }
-    single<com.mathstack.shared.infrastructure.email.EmailService> { com.mathstack.shared.infrastructure.email.SmtpEmailService() }
     factory { com.mathstack.admin.application.GetAdminSettingsUseCase(get()) }
     factory { com.mathstack.admin.application.UpdateAdminSettingsUseCase(get()) }
 }

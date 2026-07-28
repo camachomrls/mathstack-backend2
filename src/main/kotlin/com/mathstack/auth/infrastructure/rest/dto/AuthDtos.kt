@@ -2,7 +2,11 @@ package com.mathstack.auth.infrastructure.rest.dto
 
 import com.mathstack.auth.application.LoginCommand
 import com.mathstack.auth.application.RegisterCommand
+import com.mathstack.auth.application.VerifyOtpCommand
+import com.mathstack.auth.application.ForgotPasswordCommand
+import com.mathstack.auth.application.ResetPasswordCommand
 import com.mathstack.auth.domain.model.AuthSession
+import com.mathstack.auth.domain.model.OtpPolicy
 import com.mathstack.shared.domain.exception.ValidationException
 import com.mathstack.users.infrastructure.rest.dto.UserResponse
 import com.mathstack.users.infrastructure.rest.dto.toResponse
@@ -30,11 +34,19 @@ data class LoginWithGoogleRequest(
     val firebaseUid: String? = null
 )
 
-fun LoginWithGoogleRequest.toCommand() = com.mathstack.auth.application.LoginWithGoogleCommand(
-    email = email,
-    username = username,
-    firebaseUid = firebaseUid
-)
+fun LoginWithGoogleRequest.toCommand(): com.mathstack.auth.application.LoginWithGoogleCommand {
+    validateEmail(email)
+    validateUsername(username)
+    if (firebaseUid != null && firebaseUid.isBlank()) {
+        throw ValidationException("firebaseUid must not be blank")
+    }
+
+    return com.mathstack.auth.application.LoginWithGoogleCommand(
+        email = email.normalizedEmail(),
+        username = username.trim(),
+        firebaseUid = firebaseUid?.trim(),
+    )
+}
 
 @Serializable
 data class VerifyOtpRequest(
@@ -52,6 +64,15 @@ data class ResetPasswordRequest(
     val email: String,
     val code: String,
 )
+
+fun VerifyOtpRequest.toCommand(): VerifyOtpCommand =
+    VerifyOtpCommand(email = email.validatedEmail(), code = code.validatedOtpCode())
+
+fun ForgotPasswordRequest.toCommand(): ForgotPasswordCommand =
+    ForgotPasswordCommand(email = email.validatedEmail())
+
+fun ResetPasswordRequest.toCommand(): ResetPasswordCommand =
+    ResetPasswordCommand(email = email.validatedEmail(), code = code.validatedOtpCode())
 
 @Serializable
 data class AuthResponse(
@@ -106,6 +127,19 @@ private fun validateEmail(value: String) {
     }
 }
 
+private fun String.validatedEmail(): String {
+    validateEmail(this)
+    return normalizedEmail()
+}
+
+private fun String.validatedOtpCode(): String {
+    val normalizedCode = trim()
+    if (!OtpCodeRegex.matches(normalizedCode)) {
+        throw ValidationException("code must be a ${OtpPolicy.CODE_LENGTH}-digit OTP")
+    }
+    return normalizedCode
+}
+
 private fun validateUsername(value: String) {
     if (value.trim().length !in 3..50) {
         throw ValidationException("username must contain between 3 and 50 characters")
@@ -127,3 +161,4 @@ private fun validateStrongPassword(value: String) {
 private fun String.normalizedEmail(): String = trim().lowercase()
 
 private val EmailRegex = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+private val OtpCodeRegex = Regex("^\\d{${OtpPolicy.CODE_LENGTH}}$")

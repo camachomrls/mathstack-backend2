@@ -3,23 +3,22 @@ package com.mathstack.auth.application
 import com.mathstack.auth.domain.model.AuthSession
 import com.mathstack.auth.domain.repository.PasswordHasher
 import com.mathstack.auth.domain.repository.TokenService
+import com.mathstack.auth.domain.model.OtpPolicy
+import com.mathstack.auth.domain.repository.OtpCodeRepository
+import com.mathstack.shared.domain.email.EmailSender
 import com.mathstack.shared.domain.exception.UnauthorizedException
 import com.mathstack.users.domain.repository.UserRepository
-
-import com.mathstack.auth.domain.repository.OtpCodeRepository
-import com.mathstack.shared.infrastructure.email.EmailService
 import com.mathstack.auth.domain.model.OtpCode
 import java.time.LocalDateTime
-import kotlin.random.Random
 
 class LoginUseCase(
     private val userRepository: UserRepository,
     private val passwordHasher: PasswordHasher,
     private val tokenService: TokenService,
     private val otpCodeRepository: OtpCodeRepository,
-    private val emailService: EmailService,
+    private val emailSender: EmailSender,
 ) {
-    operator fun invoke(command: LoginCommand): AuthSession {
+    suspend operator fun invoke(command: LoginCommand): AuthSession {
         val user = userRepository.findUserByEmail(command.email)
             ?: throw UnauthorizedException("Invalid email or password")
 
@@ -27,14 +26,15 @@ class LoginUseCase(
             throw UnauthorizedException("Invalid email or password")
         }
 
-        val code = String.format("%04d", Random.nextInt(10000))
-        val expiresAt = LocalDateTime.now().plusMinutes(5)
-        otpCodeRepository.save(OtpCode(user.id, code, expiresAt))
+        val code = AuthSecretGenerator.otp()
+        val createdAt = LocalDateTime.now()
+        val expiresAt = createdAt.plusMinutes(OtpPolicy.LOGIN_TTL_MINUTES)
+        otpCodeRepository.saveOtp(OtpCode(user.email, passwordHasher.hash(code), createdAt, expiresAt))
         
-        emailService.sendEmail(
+        emailSender.sendEmail(
             user.email,
-            "Tu código de verificación",
-            "<p>Tu código de verificación de 2 pasos es: <strong>$code</strong></p><p>Este código expira en 5 minutos.</p>"
+            AuthEmailTemplates.LOGIN_OTP_SUBJECT,
+            AuthEmailTemplates.loginOtp(code),
         )
 
         return AuthSession(

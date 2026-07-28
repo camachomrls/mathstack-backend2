@@ -2,8 +2,8 @@ package com.mathstack.auth.application
 
 import com.mathstack.auth.domain.repository.OtpCodeRepository
 import com.mathstack.auth.domain.repository.PasswordHasher
+import com.mathstack.shared.domain.email.EmailSender
 import com.mathstack.shared.domain.exception.UnauthorizedException
-import com.mathstack.shared.infrastructure.email.EmailService
 import com.mathstack.users.domain.repository.UserRepository
 import java.time.LocalDateTime
 
@@ -11,30 +11,29 @@ class ResetPasswordUseCase(
     private val userRepository: UserRepository,
     private val otpCodeRepository: OtpCodeRepository,
     private val passwordHasher: PasswordHasher,
-    private val emailService: EmailService
+    private val emailSender: EmailSender,
 ) {
-    operator fun invoke(command: ResetPasswordCommand) {
+    suspend operator fun invoke(command: ResetPasswordCommand) {
         val user = userRepository.findUserByEmail(command.email)
             ?: throw UnauthorizedException("Invalid email or code")
 
-        val otp = otpCodeRepository.findByUserId(user.id)
+        val otp = otpCodeRepository.getOtpByEmail(command.email)
             ?: throw UnauthorizedException("Invalid or expired code")
 
-        if (otp.code != command.code || otp.expiresAt.isBefore(LocalDateTime.now())) {
+        if (!otp.expiresAt.isAfter(LocalDateTime.now()) || !passwordHasher.verify(command.code, otp.codeHash)) {
             throw UnauthorizedException("Invalid or expired code")
         }
 
-        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*"
-        val newPassword = (1..10).map { chars.random() }.joinToString("")
+        val newPassword = AuthSecretGenerator.temporaryPassword()
         val passwordHash = passwordHasher.hash(newPassword)
 
         userRepository.updatePassword(user.id, passwordHash)
-        otpCodeRepository.deleteByUserId(user.id)
+        otpCodeRepository.deleteOtp(command.email)
 
-        emailService.sendEmail(
+        emailSender.sendEmail(
             user.email,
-            "Tu nueva contraseña de MathStack",
-            "<p>Tu contraseña ha sido restablecida exitosamente. Tu nueva contraseña es: <strong>$newPassword</strong></p><p>Te recomendamos cambiarla una vez que inicies sesión.</p>"
+            AuthEmailTemplates.TEMPORARY_PASSWORD_SUBJECT,
+            AuthEmailTemplates.temporaryPassword(newPassword),
         )
     }
 }

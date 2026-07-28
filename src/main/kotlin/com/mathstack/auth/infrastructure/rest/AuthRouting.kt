@@ -17,13 +17,11 @@ import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 import com.mathstack.auth.application.VerifyOtpUseCase
-import com.mathstack.auth.application.VerifyOtpCommand
 import com.mathstack.auth.infrastructure.rest.dto.VerifyOtpRequest
 
 fun Route.authRouting() {
     val loginUseCase by inject<LoginUseCase>()
     val registerUseCase by inject<RegisterUseCase>()
-    val loginWithGoogleUseCase by inject<com.mathstack.auth.application.LoginWithGoogleUseCase>()
     val loginWithGoogleAndOtpUseCase by inject<com.mathstack.auth.application.LoginWithGoogleAndOtpUseCase>()
     val verifyOtpUseCase by inject<VerifyOtpUseCase>()
 
@@ -38,32 +36,25 @@ fun Route.authRouting() {
 
         post("/verify-otp") {
             val request = call.receive<VerifyOtpRequest>()
-            val session = verifyOtpUseCase(VerifyOtpCommand(request.email, request.code))
+            val session = verifyOtpUseCase(request.toCommand())
             call.respond(HttpStatusCode.OK, session.toResponse())
         }
 
         post("/forgot-password") {
             val request = call.receive<com.mathstack.auth.infrastructure.rest.dto.ForgotPasswordRequest>()
-            forgotPasswordUseCase(com.mathstack.auth.application.ForgotPasswordCommand(request.email))
+            forgotPasswordUseCase(request.toCommand())
             call.respond(HttpStatusCode.OK, mapOf("message" to "If the email exists, a code was sent"))
         }
 
         post("/reset-password") {
             val request = call.receive<com.mathstack.auth.infrastructure.rest.dto.ResetPasswordRequest>()
-            resetPasswordUseCase(com.mathstack.auth.application.ResetPasswordCommand(request.email, request.code))
+            resetPasswordUseCase(request.toCommand())
             call.respond(HttpStatusCode.OK, mapOf("message" to "Password reset successfully"))
         }
 
         post("/login-with-google-otp") {
             val request = call.receive<LoginWithGoogleRequest>()
-            // use injected use case defined above
-            loginWithGoogleAndOtpUseCase(
-                com.mathstack.auth.application.LoginWithGoogleCommand(
-                    request.email,
-                    request.username,
-                    request.firebaseUid
-                )
-            )
+            loginWithGoogleAndOtpUseCase(request.toCommand())
             call.respond(HttpStatusCode.OK, mapOf("message" to "Verification code sent to email"))
         }
 

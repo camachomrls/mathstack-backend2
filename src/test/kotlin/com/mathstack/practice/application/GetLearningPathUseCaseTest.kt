@@ -25,10 +25,13 @@ class GetLearningPathUseCaseTest {
             return result
         }
         override fun createLearningPath(path: com.mathstack.practice.domain.model.LearningPath): com.mathstack.practice.domain.model.LearningPath = path
+        override fun upsertLearningPath(path: com.mathstack.practice.domain.model.LearningPath): com.mathstack.practice.domain.model.LearningPath = path
         override fun findAllDiagnostics(): List<DiagnosticResult> = diagnostics
         override fun findDiagnosticsByUserId(userId: UUID): List<DiagnosticResult> = diagnostics.filter { it.userId == userId }
         override fun findAllSessions(): List<com.mathstack.practice.domain.model.PracticeSession> = emptyList()
         override fun findLearningPathsByUserId(userId: UUID): List<com.mathstack.practice.domain.model.LearningPath> = emptyList()
+        override fun findAllExerciseAttempts(): List<com.mathstack.practice.domain.model.ExerciseAttempt> = emptyList()
+        override fun findAllLearningPaths(): List<com.mathstack.practice.domain.model.LearningPath> = emptyList()
     }
 
     class MockAcademicRepository : AcademicRepository {
@@ -65,6 +68,7 @@ class GetLearningPathUseCaseTest {
         override fun findExerciseById(id: UUID): com.mathstack.academic.domain.model.Exercise? = null
         override fun listAllExercises(): List<com.mathstack.academic.domain.model.Exercise> = emptyList()
         override fun listExercisesByLesson(lessonId: UUID): List<com.mathstack.academic.domain.model.Exercise> = emptyList()
+        override fun listRandomExercisesBySubjectAndDifficulty(subjectId: Int, difficultyLevel: Int, limit: Int): List<com.mathstack.academic.domain.model.Exercise> = emptyList()
         override fun updateExercise(exercise: com.mathstack.academic.domain.model.Exercise): com.mathstack.academic.domain.model.Exercise? = exercise
         override fun deleteExercise(id: UUID): Boolean = true
     }

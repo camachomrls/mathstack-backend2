@@ -1,21 +1,23 @@
 package com.mathstack.auth.application
 
 import com.mathstack.auth.domain.model.OtpCode
+import com.mathstack.auth.domain.model.OtpPolicy
 import com.mathstack.auth.domain.repository.OtpCodeRepository
+import com.mathstack.auth.domain.repository.PasswordHasher
 import com.mathstack.auth.domain.repository.TokenService
-import com.mathstack.shared.infrastructure.email.EmailService
+import com.mathstack.shared.domain.email.EmailSender
 import com.mathstack.users.domain.model.User
 import com.mathstack.users.domain.repository.UserRepository
 import java.time.LocalDateTime
-import kotlin.random.Random
 
 class LoginWithGoogleAndOtpUseCase(
     private val userRepository: UserRepository,
     private val tokenService: TokenService,
     private val otpCodeRepository: OtpCodeRepository,
-    private val emailService: EmailService
+    private val passwordHasher: PasswordHasher,
+    private val emailSender: EmailSender,
 ) {
-    operator fun invoke(command: LoginWithGoogleCommand) {
+    suspend operator fun invoke(command: LoginWithGoogleCommand) {
         var user = command.firebaseUid?.let { userRepository.findUserByFirebaseUid(it) }
             ?: userRepository.findUserByEmail(command.email)
 
@@ -32,13 +34,14 @@ class LoginWithGoogleAndOtpUseCase(
             user = userRepository.createUser(newUser)
         }
 
-        val code = String.format("%06d", Random.nextInt(1000000))
-        val expiresAt = LocalDateTime.now().plusMinutes(15)
-        otpCodeRepository.save(OtpCode(user.id, code, expiresAt))
-        emailService.sendEmail(
+        val code = AuthSecretGenerator.otp()
+        val createdAt = LocalDateTime.now()
+        val expiresAt = createdAt.plusMinutes(OtpPolicy.LOGIN_TTL_MINUTES)
+        otpCodeRepository.saveOtp(OtpCode(user.email, passwordHasher.hash(code), createdAt, expiresAt))
+        emailSender.sendEmail(
             user.email,
-            "Código de verificación para inicio de sesión",
-            "<p>Tu código de verificación es: <strong>$code</strong>. Expira en 15 minutos.</p>"
+            AuthEmailTemplates.GOOGLE_LOGIN_OTP_SUBJECT,
+            AuthEmailTemplates.googleLoginOtp(code),
         )
     }
 }

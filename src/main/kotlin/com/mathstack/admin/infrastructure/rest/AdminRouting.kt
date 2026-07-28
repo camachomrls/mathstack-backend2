@@ -8,14 +8,16 @@ import com.mathstack.admin.infrastructure.rest.dto.GenerateAvatarRequest
 import com.mathstack.admin.infrastructure.rest.dto.GenerateAvatarResponse
 import com.mathstack.admin.infrastructure.rest.dto.OverviewStatsResponse
 import com.mathstack.admin.infrastructure.rest.dto.UpdateCoinsRequest
+import com.mathstack.shared.domain.email.EmailSender
+import com.mathstack.shared.domain.exception.ValidationException
 import com.mathstack.shared.infrastructure.plugins.authorize
 import com.mathstack.users.infrastructure.rest.dto.toResponse
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -23,6 +25,8 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import java.time.LocalDateTime
+import java.time.format.DateTimeParseException
 import java.util.UUID
 import com.mathstack.admin.application.ListAllPracticeSessionsUseCase
 import com.mathstack.practice.infrastructure.rest.dto.toResponse
@@ -44,7 +48,7 @@ fun Route.adminRouting() {
     val deleteAdminChallengeUseCase by inject<com.mathstack.admin.application.DeleteAdminChallengeUseCase>()
     val getAdminSettingsUseCase by inject<com.mathstack.admin.application.GetAdminSettingsUseCase>()
     val updateAdminSettingsUseCase by inject<com.mathstack.admin.application.UpdateAdminSettingsUseCase>()
-    val emailService by inject<com.mathstack.shared.infrastructure.email.EmailService>()
+    val emailSender by inject<EmailSender>()
 
     authenticate("auth-jwt") {
         authorize("ADMIN") {
@@ -82,8 +86,8 @@ fun Route.adminRouting() {
                         description = request.description,
                         subjectId = request.subjectId,
                         difficulty = request.difficulty,
-                        startDate = request.startDate?.let { java.time.LocalDateTime.parse(it) },
-                        endDate = request.endDate?.let { java.time.LocalDateTime.parse(it) },
+                        startDate = request.startDate?.toLocalDateTime("startDate"),
+                        endDate = request.endDate?.toLocalDateTime("endDate"),
                         rewardCoins = request.rewardCoins,
                         rewardXp = request.rewardXp,
                         targetScore = request.targetScore
@@ -93,7 +97,7 @@ fun Route.adminRouting() {
                     
                     val settings = getAdminSettingsUseCase()
                     if (settings.challengeAlerts) {
-                        emailService.sendEmail(
+                        emailSender.sendEmail(
                             to = "mathstacksoporte@gmail.com",
                             subject = "Nuevo Reto Creado: \${challenge.title}",
                             htmlContent = "<h3>Se ha creado un nuevo reto</h3><p><strong>Título:</strong> \${challenge.title}</p><p><strong>Recompensa:</strong> \${challenge.rewardCoins} coins</p>"
@@ -118,37 +122,32 @@ fun Route.adminRouting() {
                 }
 
                 patch("/challenges/{id}") {
-                    try {
-                        val id = UUID.fromString(call.parameters["id"] ?: throw IllegalArgumentException("Missing id"))
-                        val request = call.receive<com.mathstack.admin.application.UpdateAdminChallengeCommand>()
-                        val challenge = updateAdminChallengeUseCase(id, request)
-                        if (challenge != null) {
-                            call.respond(HttpStatusCode.OK, com.mathstack.admin.infrastructure.rest.dto.ChallengeResponse(
-                                id = challenge.id.toString(),
-                                creatorId = "admin",
-                                status = challenge.status,
-                                createdAt = challenge.createdAt.toString(),
-                                title = challenge.title,
-                                description = challenge.description,
-                                subjectId = challenge.subjectId,
-                                difficulty = challenge.difficulty,
-                                startDate = challenge.startDate?.toString(),
-                                endDate = challenge.endDate?.toString(),
-                                rewardCoins = challenge.rewardCoins,
-                                rewardXP = challenge.rewardXp,
-                                targetScore = challenge.targetScore
-                            ))
-                        } else {
-                            call.respond(HttpStatusCode.NotFound)
-                        }
-                    } catch (e: Exception) {
-                        val errorMsg = e.message?.replace("\"", "'") ?: "Unknown error"
-                        call.respondText("{\"message\": \"ERROR_DETAILS: $errorMsg\"}", io.ktor.http.ContentType.Application.Json, HttpStatusCode.InternalServerError)
+                    val id = call.uuidParameter("id")
+                    val request = call.receive<com.mathstack.admin.application.UpdateAdminChallengeCommand>()
+                    val challenge = updateAdminChallengeUseCase(id, request)
+                    if (challenge != null) {
+                        call.respond(HttpStatusCode.OK, com.mathstack.admin.infrastructure.rest.dto.ChallengeResponse(
+                            id = challenge.id.toString(),
+                            creatorId = "admin",
+                            status = challenge.status,
+                            createdAt = challenge.createdAt.toString(),
+                            title = challenge.title,
+                            description = challenge.description,
+                            subjectId = challenge.subjectId,
+                            difficulty = challenge.difficulty,
+                            startDate = challenge.startDate?.toString(),
+                            endDate = challenge.endDate?.toString(),
+                            rewardCoins = challenge.rewardCoins,
+                            rewardXP = challenge.rewardXp,
+                            targetScore = challenge.targetScore,
+                        ))
+                    } else {
+                        call.respond(HttpStatusCode.NotFound)
                     }
                 }
 
                 delete("/challenges/{id}") {
-                    val id = UUID.fromString(call.parameters["id"] ?: throw IllegalArgumentException("Missing id"))
+                    val id = call.uuidParameter("id")
                     val success = deleteAdminChallengeUseCase(id)
                     if (success) {
                         call.respond(HttpStatusCode.NoContent)
@@ -163,7 +162,7 @@ fun Route.adminRouting() {
                 }
 
                 get("/users/{id}") {
-                    val userId = UUID.fromString(call.parameters["id"] ?: throw IllegalArgumentException("Missing id"))
+                    val userId = call.uuidParameter("id")
                     val profile = getUserProfileUseCase(userId)
                     call.respond(profile.toResponse())
                 }
@@ -179,7 +178,7 @@ fun Route.adminRouting() {
                 }
 
                 put("/users/{id}/coins") {
-                    val userId = UUID.fromString(call.parameters["id"] ?: throw IllegalArgumentException("Missing id"))
+                    val userId = call.uuidParameter("id")
                     val request = call.receive<UpdateCoinsRequest>()
                     
                     updateUserCoinsUseCase(userId, request.coins)
@@ -199,3 +198,19 @@ fun Route.adminRouting() {
         }
     }
 }
+
+private fun ApplicationCall.uuidParameter(name: String): UUID {
+    val value = parameters[name] ?: throw ValidationException("$name is required")
+    return try {
+        UUID.fromString(value)
+    } catch (_: IllegalArgumentException) {
+        throw ValidationException("$name must be a valid UUID")
+    }
+}
+
+private fun String.toLocalDateTime(parameterName: String): LocalDateTime =
+    try {
+        LocalDateTime.parse(this)
+    } catch (_: DateTimeParseException) {
+        throw ValidationException("$parameterName must use ISO-8601 local date-time format")
+    }

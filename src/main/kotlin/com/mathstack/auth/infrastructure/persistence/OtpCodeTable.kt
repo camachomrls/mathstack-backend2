@@ -2,10 +2,10 @@ package com.mathstack.auth.infrastructure.persistence
 
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.datetime
-import java.util.UUID
 
 object OtpCodeTable : Table("otp_codes") {
-    val userId = uuid("user_id").uniqueIndex()
-    val code = varchar("code", 10)
+    val email = varchar("email", 255).uniqueIndex()
+    val code = varchar("code", 60)
+    val createdAt = datetime("created_at")
     val expiresAt = datetime("expires_at")
 }

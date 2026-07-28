@@ -8,5 +8,7 @@ class BCryptPasswordHasher : PasswordHasher {
         BCrypt.hashpw(rawPassword, BCrypt.gensalt(12))
 
     override fun verify(rawPassword: String, passwordHash: String): Boolean =
-        passwordHash.isNotBlank() && BCrypt.checkpw(rawPassword, passwordHash)
+        passwordHash.isNotBlank() && runCatching {
+            BCrypt.checkpw(rawPassword, passwordHash)
+        }.getOrDefault(false)
 }

@@ -7,27 +7,28 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import java.util.UUID
 
 class PostgresOtpCodeRepository : OtpCodeRepository {
-    override fun save(otpCode: OtpCode) {
+    override fun saveOtp(otpCode: OtpCode) {
         transaction {
-            OtpCodeTable.deleteWhere { OtpCodeTable.userId eq otpCode.userId }
+            OtpCodeTable.deleteWhere { OtpCodeTable.email eq otpCode.email }
             OtpCodeTable.insert {
-                it[userId] = otpCode.userId
-                it[code] = otpCode.code
+                it[email] = otpCode.email
+                it[code] = otpCode.codeHash
+                it[createdAt] = otpCode.createdAt
                 it[expiresAt] = otpCode.expiresAt
             }
         }
     }
 
-    override fun findByUserId(userId: UUID): OtpCode? {
+    override fun getOtpByEmail(email: String): OtpCode? {
         return transaction {
-            OtpCodeTable.selectAll().where { OtpCodeTable.userId eq userId }
+            OtpCodeTable.selectAll().where { OtpCodeTable.email eq email }
                 .map {
                     OtpCode(
-                        userId = it[OtpCodeTable.userId],
-                        code = it[OtpCodeTable.code],
+                        email = it[OtpCodeTable.email],
+                        codeHash = it[OtpCodeTable.code],
+                        createdAt = it[OtpCodeTable.createdAt],
                         expiresAt = it[OtpCodeTable.expiresAt]
                     )
                 }
@@ -35,9 +36,9 @@ class PostgresOtpCodeRepository : OtpCodeRepository {
         }
     }
 
-    override fun deleteByUserId(userId: UUID) {
+    override fun deleteOtp(email: String) {
         transaction {
-            OtpCodeTable.deleteWhere { OtpCodeTable.userId eq userId }
+            OtpCodeTable.deleteWhere { OtpCodeTable.email eq email }
         }
     }
 }
